@@ -8,8 +8,9 @@ The tutorial is divided in multiple parts
 - The **R** package `mevTutorial`, which contains the dataset used for the practical and the `learnr` practice questions with an application of the model to financial data. This can be run locally on the student's machine from Rstudio.
 
 
-To run the guided tutorial, run the following command
-```{r tutorial}
+To run the guided tutorial, run the following commands:
+
+```
 remotes::install_github("lbelzile/texmexTutorial")
 learnr::run_tutorial(name = "texmex", package = "texmexTutorial")
 ```

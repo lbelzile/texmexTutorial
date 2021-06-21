@@ -18,6 +18,14 @@ navbar:
   - text: R package
     href: https://cran.r-project.org/web/packages/texmex/index.html
   right:
+  - text: Tutorials
+    menu: 
+     - text: evgam
+       href: https://lbelzile.github.io/texmexIntro/evgam/evgam_slides.pdf
+     - text: revdbayes
+       href: https://paulnorthrop.github.io/revdbayes/
+     - text: graphicalExtremes
+       href: https://sebastian-engelke.github.io/graphicalExtremes/articles/graphicalExtremes.html
   - icon: "fab fa-github"
     href: https://github.com/lbelzile/texmexTutorial
 
