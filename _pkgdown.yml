@@ -21,7 +21,7 @@ navbar:
   - text: Tutorials
     menu: 
      - text: evgam
-       href: https://lbelzile.github.io/texmexIntro/evgam/evgam_slides.pdf
+       href: https://raw.githubusercontent.com/lbelzile/texmexTutorial/main/evgam/evgam_slides.pdf
      - text: revdbayes
        href: https://paulnorthrop.github.io/revdbayes/
      - text: graphicalExtremes
