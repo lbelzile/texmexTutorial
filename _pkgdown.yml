@@ -1,0 +1,26 @@
+title: EVA2021 R tutorial
+
+url: https://lbelzile.github.io/texmexTutorial
+
+template:
+  params:
+    bootswatch: flatly
+    noindex: true
+    
+navbar:
+  title:
+  type: default
+  left:
+  - text: "Slides"
+    href: https://lbelzile.github.io/EVA2021-texmex-tutorial/
+  - text: "Notes"
+    href: https://lbelzile.github.io/texmexIntro/index.html
+  - text: R package
+    href: https://cran.r-project.org/web/packages/texmex/index.html
+  right:
+  - icon: "fab fa-github"
+    href: https://github.com/lbelzile/texmexTutorial
+
+authors:
+  Léo Belzile (HEC Montréal):
+    href: https://lbelzile.bitbucket.io

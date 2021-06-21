@@ -1,0 +1,18 @@
+.version {
+  display: none;
+}
+
+.col-md-3 {
+  display: none;
+}
+
+.contents {
+font-size: 125%; 
+}
+.navbar {
+font-size: 150%; 
+}
+
+.page-header {
+font-size: 150%; 
+}

@@ -1,0 +1,28 @@
+Package: texmexTutorial
+Type: Package
+Title: EVA2021 tutorial for texmex package
+Version: 2021.06.20
+Author: Leo Belzile
+Maintainer: Leo Belzile <leo.belzile@hec.ca>
+Description: Theory and exercises for the texmex package tutorial 
+    at EVA2021 for the Heffernan and Tawn (2004) conditional 
+    extremes model
+License: CC-BY
+Encoding: UTF-8
+LazyData: true
+Depends:
+  R (>= 4.0.0),
+  texmex,
+  ggplot2,
+  gridExtra,
+  poorman
+Imports: 
+  learnr, 
+  ggplot2,
+  poorman, 
+  texmex
+Suggests:
+  knitr,
+  pkgdown
+VignetteBuilder: knitr
+RoxygenNote: 7.1.1

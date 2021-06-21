@@ -1,0 +1,264 @@
+---
+title: "Conditional extreme value modelling of financial returns"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+We study the extremal dependence of the negative daily returns of three American banks. The data are located in the `returnsBanks` dataset, see `?texmexTutorial::returnsBanks` for a brief description.
+
+Since we are interested in the lower tail, we negate the three series.
+
+```{r loadData, echo = TRUE, eval = TRUE, message = FALSE}
+library(texmex)
+library(gridExtra)
+library(xts, warn.conflicts = FALSE) #irregular time series
+data("returnsBanks", package = "texmexTutorial")
+?texmexTutorial::returnsBanks
+
+library(poorman)
+negRetBanks <- returnsBanks %>%
+  poorman::transmute(nretC = - retC,
+                     nretBAC = - retBAC,
+                     nretGS = - retGS)
+```
+
+## Exploratory data analysis
+
+Create a plot of the time series (e.g., using the `xts` package and casting the lot to `xts` object):  
+
+```{r plot_ts, exercice = TRUE}
+retTS <- with(returnsBanks, 
+  xts(
+   x = cbind(...), # all three columns
+   order.by = ...  # Date
+ )
+)
+plot(...)
+```
+
+```{r plot_ts-hint1, exercice = TRUE}
+retTS <- with(returnsBanks, 
+  xts(
+   x = cbind(...), # see ?returnsBanks
+   order.by = date
+ )
+)
+plot.xts(retTS, main = "Daily returns of banks")
+```
+
+```{r plot_ts-solution, exercice = TRUE}
+retTS <- with(returnsBanks, 
+  xts(
+   x = cbind(retC, retBAC, retGS),
+   order.by = date
+ )
+)
+plot(retTS, main = "Daily returns of banks")
+```
+
+We can clearly see the increase in volatility resulting from the 2009 financial crisis, the burst of the tech bubble and the Covid19 pandemic.
+
+## Choosing marginal quantiles
+
+
+
+*Calculate the 95 percentile negative returns for Chase.*
+
+```{r calculateQuantileChase, exercise = TRUE}
+
+```
+
+```{r calculateQuantileChase-solution}
+with(negRetBanks, 
+     quantile(nretC, 0.95)
+)
+```
+
+```{r calculateQuantileChase-check}
+learnr::grade_result(
+  learnr::pass_if(~identical(.result, quantile(negRetBanks$nretC, 0.95)))
+)
+```
+
+* To which quantile does a negative daily return of 5% correspond for the Chase series?*
+
+
+```{r calculateLevelChase, exercise = TRUE}
+
+```
+
+```{r calculateLevelChase-solution}
+with(negRetBanks, 
+     ecdf(nretGS)(0.05)
+)
+```
+
+```{r calculateLevelChase-check}
+learnr::grade_result(
+  learnr::pass_if(~identical(.result, ecdf(negRetBanks$nretGS)(0.05)))
+)
+```
+
+
+The 95% of the series for daily negative returns amount to daily loses of the order of between `r round(min(apply(negRetBanks, 2, quantile, 0.95))*100,1)` and `r round(max(apply(negRetBanks, 2, quantile, 0.95))*100,1)` percentage points.
+
+### Threshold stability plots
+
+We first need to find suitable marginal thresholds for each of the three series.
+
+* Produce threshold stability plots for thresholds at the 0.8, 0.81, ... 0.98 quantiles of each series (ignoring clustering).*
+
+```{r threshStab, exercise = TRUE}
+# Try thresholds from 0.8 quantile to 0.99 quantile
+fitRangeC <- gpdRangeFit(...) # Chase
+fitRangeBAC <- gpdRangeFit(...) # Bank of America
+fitRangeGS <- gpdRangeFit(...) # Goldman Sachs
+ggplot(fitRangeC)
+...
+```
+
+```{r threshStab-hint, exercise = TRUE}
+fitRangeC <- 
+  with(negRetBanks,
+     gpdRangeFit(
+       data = nretC, 
+       umin = quantile(x = nretC, probs = 0.8),
+       umax = quantile(x = nretC, probs = 0.98),
+       nint = 19L)
+     )# Chase
+fitRangeBAC <- gpdRangeFit(...) # Bank of America
+fitRangeGS <- gpdRangeFit(...) # Goldman Sachs
+ggplot(fitRangeC)
+...
+```
+
+
+```{r threshStab-solution, exercise = TRUE}
+fitRangeC <- 
+  with(negRetBanks,
+     gpdRangeFit(
+       data = nretC, 
+       umin = quantile(x = nretC, probs = 0.8),
+       umax = quantile(x = nretC, probs = 0.98),
+       nint = 19L)
+     )# Chase
+fitRangeBAC <- with(negRetBanks,
+     gpdRangeFit(
+       data = nretBAC, 
+       umin = quantile(x = nretBAC, probs = 0.8),
+       umax = quantile(x = nretBAC, probs = 0.98),
+       nint = 19L)
+     ) # Bank of America
+fitRangeGS <- with(negRetBanks,
+     gpdRangeFit(
+       data = nretGS, 
+       umin = quantile(x = nretGS, probs = 0.8),
+       umax = quantile(x = nretGS, probs = 0.98),
+       nint = 19L)
+     ) # Goldman Sachs
+
+# Create and wrap plots gogether
+patchwork::wrap_plots(ggplot(fitRangeC))
+patchwork::wrap_plots(ggplot(fitRangeBAC))
+patchwork::wrap_plots(ggplot(fitRangeGS))
+```
+
+The Bank of America plots and Goldman Sachs plots are more or less constant over the range of threshold, but there is a sawtooth pattern for the Chase series for estimates of the shape $\widehat{\xi}(u)$ beyond 5% decrease.
+
+Time series are serially dependent and extremes tend to cluster (i.e, threshold exceedances are consecutive), so we probably should consider only cluster maxima. Another avenue is to fit the model with all exceedances, but adjust return levels afterwise. The `texmex` package includes an estimator of the extremal index, which measures the degree of clustering.
+
+The `texmex::extremalIndexRangeFit` produces a threshold plot of extremal clustering index over a range of thresholds $u$. Is there evidence of serial dependence for extremes?
+
+
+```{r extremalIndex, exercise = TRUE}
+extremalIndex(data = negRetBanks, 
+              y = nretC,
+              threshold = quantile(nretC, 0.95))
+```
+
+```{r tailDepQuestion, echo=FALSE}
+question("What does the plots of $\chi(u)$ and $\overline{\chi}(u)$ reveal about the nature of the extremal dependence between Goldman Sachs and Chase?",
+  answer("asymptotic dependence", correct = TRUE),
+  answer("asymptotic independence, positive dependence"),
+  answer("asymptotic independence, negative dependence"),
+  answer("asymptotic independence")
+)
+```
+
+
+5. Using `mex` or `migpd` + `mexDependence`, estimate the dependence of the two banks given a large negative return for Goldman Sachs. 
+6. Check if your estimates lie on the boundary of the parameter space. What impact does it have on inference? (if you do not which to produce profile likelihood plots, you can simply switch `constrain=TRUE` and see if the returned point estimates differ).
+6. Create a plot of $\chi(u)$ along with the fitted line from the model and pointwise bootstrap confidence intervals.
+7. Describe in your words the type of extremal dependence between the series.
+8. Use `mexAll` to estimate the three models at once, `mexMonteCarlo` to simulate records from the different models and `predict` to estimate the risk that 
+  a. all three stocks drop by more than 5% simultaneously
+  b. Bank of America and Chase lose more than 3.5%
+  c. Chases loses more than Bank of America on a day where Goldman Sachs has a negative return in excess of 3%.
+
+
+### Exercise 
+
+*Here's a simple exercise with an empty code chunk provided for entering the answer.*
+
+Write the R code required to add two plus two:
+
+```{r two-plus-two, exercise=TRUE}
+
+```
+
+### Exercise with Code
+
+*Here's an exercise with some prepopulated code as well as `exercise.lines = 5` to provide a bit more initial room to work.*
+
+Now write a function that adds any two numbers and then call it:
+
+```{r add-function, exercise=TRUE, exercise.lines = 5}
+add <- function() {
+  
+}
+```
+
+## Topic 2
+
+### Exercise with Hint
+
+*Here's an exercise where the chunk is pre-evaluated via the `exercise.eval` option (so the user can see the default output we'd like them to customize). We also add a "hint" to the correct solution via the chunk immediate below labeled `print-limit-hint`.*
+
+Modify the following code to limit the number of rows printed to 5:
+
+```{r print-limit, exercise=TRUE, exercise.eval=TRUE}
+mtcars
+```
+
+```{r print-limit-hint}
+head(mtcars)
+```
+
+### Quiz
+
+*You can include any number of single or multiple choice questions as a quiz. Use the `question` function to define a question and the `quiz` function for grouping multiple questions together.*
+
+Some questions to verify that you understand the purposes of various base and recommended R packages:
+
+```{r quiz}
+quiz(
+  question("Which package contains functions for installing other R packages?",
+    answer("base"),
+    answer("tools"),
+    answer("utils", correct = TRUE),
+    answer("codetools")
+  ),
+  question("Which of the R packages listed below are used to create plots?",
+    answer("lattice", correct = TRUE),
+    answer("tools"),
+    answer("stats"),
+    answer("grid", correct = TRUE)
+  )
+)
+```
+
