@@ -22,7 +22,7 @@ library(texmex)
 library(gridExtra)
 library(xts, warn.conflicts = FALSE) #irregular time series
 data("returnsBanks", package = "texmexTutorial")
-?texmexTutorial::returnsBanks
+# ?texmexTutorial::returnsBanks
 
 library(poorman)
 negRetBanks <- returnsBanks %>%
@@ -30,7 +30,7 @@ negRetBanks <- returnsBanks %>%
                      nretBAC = - retBAC,
                      nretGS = - retGS) %>%
   as.data.frame() 
- # "tibble" sometimes not recognized by texmex
+ # "tibble" not recognized by texmex
 
 ```
 
@@ -85,16 +85,6 @@ with(negRetBanks,
 )
 ```
 
-```{r calculateQuantileChase-check}
-learnr::grade_result(
-  learnr::pass_if(
-    ~all.equal(.result, 
-               quantile(negRetBanks$nretC, 0.95), 
-               check.attributes = FALSE)
-    )
-)
-```
-
 *To which quantile does a negative daily return of 5% correspond for the Chase series?*
 
 
@@ -113,19 +103,6 @@ with(negRetBanks,
 )
 ```
 
-```{r calculateLevelChase-check}
-learnr::grade_result(
-  learnr::pass_if(
-    ~all.equal(
-      .result, 
-      ecdf(negRetBanks$nretC)(0.05),
-      check.attributes = FALSE
-    )
-  )
-)
-```
-
-
 The 95% of the series for daily negative returns amount to daily loses of the order of between `r round(min(apply(negRetBanks, 2, quantile, 0.95))*100,1)` and `r round(max(apply(negRetBanks, 2, quantile, 0.95))*100,1)` percentage points.
 
 ## Marginal modelling
@@ -136,7 +113,7 @@ We first need to find suitable marginal thresholds for each of the three series.
 
 *Produce threshold stability plots for thresholds at the 0.8, 0.81, ... 0.98 quantiles of the Chase negative returns (ignoring clustering).*
 
-```{r threshstab, exercise = TRUE}
+```{r threshstab, exercise = TRUE, eval = FALSE}
 # Try thresholds from 0.8 quantile 
 # to 0.98 quantile in increments of 0.01
 fitRangeC <- gpdRangeFit(...) # Chase
@@ -144,7 +121,7 @@ ggplot(fitRangeC)
 # Repeat this for the other series
 ```
 
-```{r threshstab-hint}
+```{r threshstab-hint, eval = FALSE}
 # Try thresholds from 0.8 quantile 
 # to 0.98 quantile in increments of 0.01
 fitRangeC <- 
@@ -210,7 +187,7 @@ Now that we have determined that the parameters of the generalized Pareto are mo
 
 *Use the function `evm` to fit the model via maximum likelihood for the Chase series. Print the estimated coefficients and use the `ggplot` (or `plot`) method to create diagnostic plots.* Note that the scale parameter is estimated on the log scale, so $\phi = \log(\sigma)$.
 
-```{r marginalFit, exercise = TRUE}
+```{r marginalFit, exercise = TRUE, eval = FALSE}
 margFit <- evm(..., 
                family = gpd, 
                th = 0.035)
@@ -282,7 +259,7 @@ fitCE <-
     )
 ```
 
-```{r fitDep-solution}
+```{r fitDep-solution, eval = TRUE}
 fitCE <- 
   mex(
     data = negRetBanks,
@@ -313,10 +290,21 @@ Think about the impact on inference of this fact on inference.
 
 Before using the model, we should perform some sanity checks to make sure the optimization routine convergence, the model output is sensical and there is no gross violation of the model assumptions.
 
-```{r diagPlotDepReg, echo = TRUE, eval = TRUE, fig.cap = "Diagnostics of the conditional independence between residuals and fitted observations.", message = FALSE}
+```{r diagPlotDepReg, echo = TRUE, eval = FALSE,  message = FALSE}
 ggplot(fitCE)
 ```
 
+
+```{r diagPlotDepRegDuplicate, echo = FALSE, eval = TRUE, fig.cap = "Diagnostics of the conditional independence between residuals and fitted observations.", message = FALSE}
+fitCE <- 
+  mex(
+    data = negRetBanks,
+    mqu = 0.95, #marginal thresholds
+    dqu = 0.95, #dependence threshold
+    which = "nretC"
+    )
+ggplot(fitCE)
+```
 Regression diagnostic plots show no evidence of trend, which suggests the conditional independence assumption between parameters and the residuals holds.
 
 
