@@ -7,6 +7,8 @@ runtime: shiny_prerendered
 ```{r setup, include=FALSE}
 library(learnr)
 knitr::opts_chunk$set(echo = FALSE)
+par(bty = "l")
+set.seed(20210627)
 ```
 
 ## Introduction
@@ -26,10 +28,15 @@ library(poorman)
 negRetBanks <- returnsBanks %>%
   poorman::transmute(nretC = - retC,
                      nretBAC = - retBAC,
-                     nretGS = - retGS)
+                     nretGS = - retGS) %>%
+  as.data.frame() 
+ # "tibble" sometimes not recognized by texmex
+
 ```
 
 ## Exploratory data analysis
+
+We can inspect visually the time series to see if there is anything striking.
 
 Create a plot of the time series (e.g., using the `xts` package and casting the lot to `xts` object):  
 
@@ -80,7 +87,11 @@ with(negRetBanks,
 
 ```{r calculateQuantileChase-check}
 learnr::grade_result(
-  learnr::pass_if(~identical(.result, quantile(negRetBanks$nretC, 0.95)))
+  learnr::pass_if(
+    ~all.equal(.result, 
+               quantile(negRetBanks$nretC, 0.95), 
+               check.attributes = FALSE)
+    )
 )
 ```
 
@@ -104,7 +115,13 @@ with(negRetBanks,
 
 ```{r calculateLevelChase-check}
 learnr::grade_result(
-  learnr::pass_if(~identical(.result, ecdf(negRetBanks$nretC)(0.05)))
+  learnr::pass_if(
+    ~all.equal(
+      .result, 
+      ecdf(negRetBanks$nretC)(0.05),
+      check.attributes = FALSE
+    )
+  )
 )
 ```
 
@@ -117,17 +134,34 @@ We first need to find suitable marginal thresholds for each of the three series.
 
 ### Threshold stability plots
 
-*Produce threshold stability plots for thresholds at the 0.8, 0.81, ... 0.98 quantiles of each series (ignoring clustering).*
+*Produce threshold stability plots for thresholds at the 0.8, 0.81, ... 0.98 quantiles of the Chase negative returns (ignoring clustering).*
 
-```{r threshStab, exercise = TRUE}
-# Try thresholds from 0.8 quantile to 0.99 quantile
+```{r threshstab, exercise = TRUE}
+# Try thresholds from 0.8 quantile 
+# to 0.98 quantile in increments of 0.01
 fitRangeC <- gpdRangeFit(...) # Chase
-fitRangeBAC <- gpdRangeFit(...) # Bank of America
-fitRangeGS <- gpdRangeFit(...) # Goldman Sachs
 ggplot(fitRangeC)
+# Repeat this for the other series
 ```
 
-```{r threshStab-hint}
+```{r threshstab-hint}
+# Try thresholds from 0.8 quantile 
+# to 0.98 quantile in increments of 0.01
+fitRangeC <- 
+  with(negRetBanks,
+     gpdRangeFit(
+       data = nretC, 
+       umin = quantile(...),
+       umax = quantile(...),
+       nint = ...)
+     )
+patchwork::wrap_plots(ggplot(fitRangeC))
+# Repeat this for the other series
+```
+
+
+```{r threshstab-solution}
+# Try thresholds from 0.8 quantile to 0.98 quantile
 fitRangeC <- 
   with(negRetBanks,
      gpdRangeFit(
@@ -136,20 +170,14 @@ fitRangeC <-
        umax = quantile(x = nretC, probs = 0.98),
        nint = 19L)
      )
-ggplot(fitRangeC)
+patchwork::wrap_plots(ggplot(fitRangeC))
 # Repeat this for the other series
 ```
 
+We can repeat the procedure for the other two series.
 
-```{r threshStab-solution}
-fitRangeC <- 
-  with(negRetBanks,
-     gpdRangeFit(
-       data = nretC, 
-       umin = quantile(x = nretC, probs = 0.8),
-       umax = quantile(x = nretC, probs = 0.98),
-       nint = 19L)
-     )# Chase
+```{r threshStab2, echo = FALSE, fig.cap = "Threshold stability plots for negative returns of Bank of America, with modified scale (left) and shape (right) parameters.", eval = TRUE}
+# Try thresholds from 0.8 quantile to 0.99 quantile
 fitRangeBAC <- with(negRetBanks,
      gpdRangeFit(
        data = nretBAC, 
@@ -157,6 +185,11 @@ fitRangeBAC <- with(negRetBanks,
        umax = quantile(x = nretBAC, probs = 0.98),
        nint = 19L)
      ) # Bank of America
+patchwork::wrap_plots(ggplot(fitRangeBAC))
+```
+
+
+```{r threshStab3, echo = FALSE, fig.cap = "Threshold stability plots for negative returns of Goldman Sachs, with modified scale (left) and shape (right) parameters."}
 fitRangeGS <- with(negRetBanks,
      gpdRangeFit(
        data = nretGS, 
@@ -166,12 +199,38 @@ fitRangeGS <- with(negRetBanks,
      ) # Goldman Sachs
 
 # Create and wrap plots gogether
-patchwork::wrap_plots(ggplot(fitRangeC))
-patchwork::wrap_plots(ggplot(fitRangeBAC))
 patchwork::wrap_plots(ggplot(fitRangeGS))
 ```
 
 The Bank of America plots and Goldman Sachs plots are more or less constant over the range of threshold, but there is a sawtooth pattern for the Chase series for estimates of the shape $\widehat{\xi}(u)$ beyond 5% decrease.
+
+### Marginal goodness-of-fit diagnostic
+
+Now that we have determined that the parameters of the generalized Pareto are more or less constant over a large range of threshold, we can fit the marginal model and check the fit is also good.
+
+*Use the function `evm` to fit the model via maximum likelihood for the Chase series. Print the estimated coefficients and use the `ggplot` (or `plot`) method to create diagnostic plots.* Note that the scale parameter is estimated on the log scale, so $\phi = \log(\sigma)$.
+
+```{r marginalFit, exercise = TRUE}
+margFit <- evm(..., 
+               family = gpd, 
+               th = 0.035)
+...
+# Print P-P and Q-Q plots
+ggplot(margFit, which = 1:2, nrow = 1)
+```
+
+```{r marginalFit-solution}
+margFit <- evm(data = negRetBanks, 
+               y = nretC,
+               family = gpd, 
+               th = 0.035)
+print(margFit)
+# Print P-P and Q-Q plots
+ggplot(margFit, which = 1:2, nrow = 1)
+```
+
+
+### Clustering (optional)
 
 Time series are serially dependent and extremes tend to cluster (i.e, threshold exceedances are consecutive), so we probably should consider only cluster maxima. Another avenue is to fit the model with all exceedances, but adjust return levels afterwise. The `texmex` package includes an estimator of the extremal index, which measures the degree of clustering.
 
@@ -189,37 +248,178 @@ with(negRetBanks,
 
 ## Extremal dependence
 
+Before we fit the model, we can look at empirical summaries of tail dependence.
+
+```{r tailDepPlots, echo = TRUE, eval = TRUE}
+tailDep <- texmex::chi(negRetBanks[,c("nretC", "nretGS")])
+ggplot(tailDep, xlim = c(0.75,1))
+```
+
 *Produce plots of $\chi(u)$ and $\overline{\chi}(u)$ for the pair of negative daily returns of (Goldman Sachs, Chase).*
 
 ```{r tailDepQuestion, echo=FALSE}
 question("What does the plots of $\\chi(u)$ and $\\overline{\\chi}(u)$ reveal about the nature of the extremal dependence between Goldman Sachs and Chase?",
-  answer("asymptotic dependence", correct = TRUE),
-  answer("asymptotic independence, positive dependence"),
-  answer("asymptotic independence, negative dependence"),
-  answer("asymptotic independence")
+  answer("asymptotic dependence", message = "It seems that $\\overline{\\chi}(u)$ does not go to unity."),
+  answer("asymptotic independence, positive dependence", correct = TRUE),
+  answer("asymptotic independence, negative dependence", message = "Not quite: is the value of $\\overline{\\chi}(u)$ negative?"),
+  answer("asymptotic independence, no dependence.", message = "The estimates (and confidence intervals) of $\\overline{\\chi}(u)$ do not include zero even when $u \\to 1$."),
+  allow_retry = TRUE
 )
 ```
 
 ## Fitting the extremal model
 
-*Using `mex` or `migpd` + `mexDependence`, estimate the dependence of the two banks given a large negative return for Goldman Sachs.*
+*Using `mex` or `migpd` + `mexDependence`, estimate the dependence of the two banks given a large negative return for Chase. Pick the 95% percentile for each marginal and dependence threshold.*
+
+```{r fitDep, exercise = TRUE, eval = FALSE}
+fitCE <- 
+  mex(
+    data = ...,
+    mqu = ..., #marginal thresholds (prob)
+    dth = ..., #dependence threshold (prob)
+    which = "nretC",
+    constrain = TRUE
+    )
+```
+
+```{r fitDep-solution}
+fitCE <- 
+  mex(
+    data = negRetBanks,
+    mqu = 0.95, #marginal thresholds
+    dqu = 0.95, #dependence threshold
+    which = "nretC"
+    )
+print(fitCE)
+```
 
 ### Verifying the optimization
 
-Check if your estimates lie on the boundary of the parameter space. What impact does it have on inference? (if you do not which to produce profile likelihood plots, you can simply switch `constrain=TRUE` versus `constrain=FALSE` in `mex` and see if the returned point estimates differ).
+*Check if your estimates lie on the boundary of the parameter space.*
+
+You can either produce a plot of the profile log likelihood for $\alpha_{|\mathrm{C}}$ and $\beta_{|\mathrm{C}}$ or refit the optimization with `constrain = FALSE` in the call to `mex`.
+
+
+```{r boundaryQuestion, echo=FALSE}
+question("Do you get the same optimum if you impose the self-consistency constraints?",
+  answer("Yes"),
+  answer("No", correct = TRUE)
+)
+```
+
+Think about the impact on inference of this fact on inference.
 
 ### Diagnostic plots
 
-*Produce dependence threshold stability plots with bootstrap replicates to check the stability of your inference relative to the choice of dependence threshold*
+Before using the model, we should perform some sanity checks to make sure the optimization routine convergence, the model output is sensical and there is no gross violation of the model assumptions.
+
+```{r diagPlotDepReg, echo = TRUE, eval = TRUE, fig.cap = "Diagnostics of the conditional independence between residuals and fitted observations.", message = FALSE}
+ggplot(fitCE)
+```
+
+Regression diagnostic plots show no evidence of trend, which suggests the conditional independence assumption between parameters and the residuals holds.
 
 
+*Produce threshold stability plots of the dependence for dependence thresholds ranging from 0.7 to 0.95 in increments of 5%.*
 
-Create a plot of $\chi(u)$ along with the fitted line from the model and pointwise bootstrap confidence intervals.
+```{r threshStabDep, exercise = TRUE, eval = FALSE}
+mexRangeFit(x = fitCE,...)
+```
+
+```{r threshStabDep-solution}
+fitRange <-
+  mexRangeFit(
+    x = fitCE,
+    quantiles = seq(0.7, 0.95, by = 0.05), 
+    R = 10L, 
+    trace = Inf,
+    constrain = TRUE, 
+    which = "nretC"
+  )
+```
+
+
+### Model by-products
+
+We can create a plot of $\chi(u)$ along with the fitted line from the model to see whether we can reproduce this dependence. The following code is quite complicated to setup, but shows an example calculation using internal slots from the list returned by `mex` objects.
+
+```{r chiCurveCE, exercise = TRUE, fig.cap = "Coefficient of tail dependence above the threshold with 100 fitted curves from the estimated conditional extremes model.", cache = TRUE, echo = TRUE}
+# Compute tail dependence
+chiu <- texmex::chi(negRetBanks[,c("nretC", "nretGS")])
+
+# Extract coefficients and residuals
+alpha_hat <- coef(fitCE)$dependence["a","nretGS"]
+beta_hat <- coef(fitCE)$dependence["b","nretGS"]
+Z <- fitCE$dependence$Z[,"nretGS"]
+# threshold
+pth <- fitCE$margins$mqu["nretC"]
+# conditioning exceedances on Laplace scale
+tYj <- fitCE$margins$transformed[,"nretC"]
+tYj <- tYj[tYj > quantile(tYj, pth)]
+
+# plot only for chi(u) above dependence threshold
+plot(chiu, 
+     show = c("Chi" = TRUE, "ChiBar" = FALSE),
+     xlim = c(pth,1))
+# replicate to get a sense of the uncertainty
+# but this ignores parameter uncertainty
+u <- seq(pth, 0.995, by = 0.005)
+for(i in seq_len(100)){
+  #compute chi_hat implied by the model
+chi_hat <- sapply(u,
+  function(u){
+  mean(
+    pmin(tYj, alpha_hat*tYj + tYj^beta_hat*
+      sample(Z, size = length(tYj), replace = TRUE)) 
+    > -log(2*(1-u))) / (1-u) * (1 - pth)
+})
+ lines(u, chi_hat)
+}
+```
 
 ## Multivariate estimates of risk
 
-Use `mexAll` to estimate the three models at once, `mexMonteCarlo` to simulate records from the different models and `predict` to estimate the risk that 
+In Heffernan and Tawn (2004), it is suggested to use the model which yields the largest (standardized) component for simulations. 
+We can use `mexAll` to estimate the three models at once and `mexMonteCarlo` to simulate records from the different models.
 
   a. all three stocks drop by more than 5% simultaneously
-  b. Bank of America and Chase lose more than 3.5%
-  c. Chases loses more than Bank of America on a day where Goldman Sachs has a negative return in excess of 3%.
+  b. Either Bank of America and Chase loses more than 3.5%
+  c. Chase loses more than Bank of America on a day where Goldman Sachs has a negative return in excess of 3%.
+
+```{r estimateRiskPrep, exercise = TRUE}
+# Run this code yourself!
+fitAllCE <- 
+  mexAll(
+    data = negRetBanks, 
+    mqu = rep(0.95, ncol(negRetBanks)),
+    dqu =  rep(0.95, ncol(negRetBanks))
+    )
+estimateSim <- mexMonteCarlo(
+  nSample = 1e4, 
+  mexList = fitAllCE
+  )
+# This is a list, see ?mexMonteCarlo for arguments
+```
+
+```{r estimateRisk, exercise = TRUE}
+
+
+```
+
+<div id="estimateRisk-hint">
+
+```{r estimateRisk-hint}
+# Use the simulations from `estimateSim$MCsample`
+# and compute the proportion of those samples
+# that satisfy the conditions.
+
+```
+
+```{r estimateRisk-solution}
+# (a) if all exceed, so does the minimum
+mean(apply(estimateSim$MCsample, 1, min) > 0.05)
+# (b) either = maximum exceeds
+mean(apply(estimateSim$MCsample[,c("nretC","nretBAC")], 1, max) > 0.035)
+# (c) filter observations for excess of GS
+mean(with(estimateSim, MCsample[,"nretGS"] > 0.03 & MCsample[,"nretC"] > MCsample[,"nretBAC"]))
+```
