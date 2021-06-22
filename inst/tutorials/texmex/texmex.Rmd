@@ -40,7 +40,7 @@ We can inspect visually the time series to see if there is anything striking.
 
 Create a plot of the time series (e.g., using the `xts` package and casting the lot to `xts` object):  
 
-```{r plot_ts, exercise = TRUE, eval = FALSE}
+```{r plot_ts, exercise = TRUE, exercise.eval = FALSE}
 retTS <- with(returnsBanks, 
   xts(
    x = cbind(...), # all three columns
@@ -50,7 +50,7 @@ retTS <- with(returnsBanks,
 plot(...)
 ```
 
-```{r plot_ts-hint, eval = FALSE}
+```{r plot_ts-hint}
 retTS <- with(returnsBanks, 
   xts(
    x = cbind(...), # see ?returnsBanks
@@ -92,10 +92,10 @@ with(negRetBanks,
 
 ```
 
-<div id="calculateLevelChase-hint">
-**Hint:** You may want to use the `ecdf` function and evaluate it at 0.05.
-</div>
-
+```{r calculateLevelChase-hint}
+# Hint: you may want to use the `ecdf` function
+# and evaluate it at 0.05.
+```
 
 ```{r calculateLevelChase-solution}
 with(negRetBanks, 
@@ -248,7 +248,7 @@ question("What does the plots of $\\chi(u)$ and $\\overline{\\chi}(u)$ reveal ab
 
 *Using `mex` or `migpd` + `mexDependence`, estimate the dependence of the two banks given a large negative return for Chase. Pick the 95% percentile for each marginal and dependence threshold.*
 
-```{r fitDep, exercise = TRUE, eval = FALSE}
+```{r fitDep, exercise = TRUE, exercise.eval = FALSE}
 fitCE <- 
   mex(
     data = ...,
@@ -259,7 +259,7 @@ fitCE <-
     )
 ```
 
-```{r fitDep-solution, eval = TRUE}
+```{r fitDep-solution}
 fitCE <- 
   mex(
     data = negRetBanks,
@@ -331,7 +331,7 @@ fitRange <-
 
 We can create a plot of $\chi(u)$ along with the fitted line from the model to see whether we can reproduce this dependence. The following code is quite complicated to setup, but shows an example calculation using internal slots from the list returned by `mex` objects.
 
-```{r chiCurveCE, exercise = TRUE, fig.cap = "Coefficient of tail dependence above the threshold with 100 fitted curves from the estimated conditional extremes model.", cache = TRUE, echo = TRUE}
+```{r chiCurveCE, exercise = TRUE, fig.cap = "Coefficient of tail dependence above the threshold with 100 fitted curves from the estimated conditional extremes model.", echo = TRUE}
 # Compute tail dependence
 chiu <- texmex::chi(negRetBanks[,c("nretC", "nretGS")])
 
@@ -374,7 +374,7 @@ We can use `mexAll` to estimate the three models at once and `mexMonteCarlo` to 
   b. Either Bank of America and Chase loses more than 3.5%
   c. Chase loses more than Bank of America on a day where Goldman Sachs has a negative return in excess of 3%.
 
-```{r estimateRiskPrep, exercise = TRUE}
+```{r estimateRiskPrep, exercise = TRUE, exercise.eval = FALSE}
 # Run this code yourself!
 fitAllCE <- 
   mexAll(
@@ -394,7 +394,6 @@ estimateSim <- mexMonteCarlo(
 
 ```
 
-<div id="estimateRisk-hint">
 
 ```{r estimateRisk-hint}
 # Use the simulations from `estimateSim$MCsample`
