@@ -4,20 +4,33 @@ output: learnr::tutorial
 runtime: shiny_prerendered
 ---
 
-```{r setup, include=FALSE}
-library(learnr)
-knitr::opts_chunk$set(echo = FALSE)
-par(bty = "l")
-set.seed(20210627)
-```
-
 ## Introduction
 
 We study the extremal dependence of the negative daily returns of three American banks. The data are located in the `returnsBanks` dataset, see `?texmexTutorial::returnsBanks` for a brief description.
 
 Since we are interested in the lower tail, we negate the three series.
+```{r setup, include=FALSE}
+library(learnr)
+knitr::opts_chunk$set(echo = FALSE)
+par(bty = "l")
+set.seed(20210627)
+library(texmex)
+library(gridExtra)
+library(xts, warn.conflicts = FALSE) #irregular time series
+data("returnsBanks", package = "texmexTutorial")
+# ?texmexTutorial::returnsBanks
 
-```{r loadData, echo = TRUE, exercise = TRUE, exercise.eval = TRUE, message = FALSE}
+library(poorman)
+negRetBanks <- returnsBanks %>%
+  poorman::transmute(nretC = - retC,
+                     nretBAC = - retBAC,
+                     nretGS = - retGS) %>%
+  as.data.frame() 
+ # "tibble" not recognized by texmex
+
+```
+
+```{r loadData, echo = TRUE, message = FALSE}
 library(texmex)
 library(gridExtra)
 library(xts, warn.conflicts = FALSE) #irregular time series
@@ -290,6 +303,16 @@ Think about the impact on inference of this fact on inference.
 
 Before using the model, we should perform some sanity checks to make sure the optimization routine convergence, the model output is sensical and there is no gross violation of the model assumptions.
 
+```{r fittedModel, eval = TRUE, echo = FALSE}
+fitCE <- 
+  mex(
+    data = negRetBanks,
+    mqu = 0.95, #marginal thresholds
+    dqu = 0.95, #dependence threshold
+    which = "nretC"
+    )
+```
+
 ```{r diagPlotDepReg, echo = TRUE, eval = FALSE,  message = FALSE}
 ggplot(fitCE)
 ```
@@ -310,7 +333,7 @@ Regression diagnostic plots show no evidence of trend, which suggests the condit
 
 *Produce threshold stability plots of the dependence for dependence thresholds ranging from 0.7 to 0.95 in increments of 5%.*
 
-```{r threshStabDep, exercise = TRUE, eval = FALSE}
+```{r threshStabDep, exercise = TRUE, eval = FALSE, exercise.setup = "fittedModel"}
 mexRangeFit(x = fitCE,...)
 ```
 
@@ -331,7 +354,7 @@ fitRange <-
 
 We can create a plot of $\chi(u)$ along with the fitted line from the model to see whether we can reproduce this dependence. The following code is quite complicated to setup, but shows an example calculation using internal slots from the list returned by `mex` objects.
 
-```{r chiCurveCE, exercise = TRUE, fig.cap = "Coefficient of tail dependence above the threshold with 100 fitted curves from the estimated conditional extremes model.", echo = TRUE}
+```{r chiCurveCE, exercise = TRUE, fig.cap = "Coefficient of tail dependence above the threshold with 100 fitted curves from the estimated conditional extremes model.", echo = TRUE, exercise.setup = "fittedModel"}
 # Compute tail dependence
 chiu <- texmex::chi(negRetBanks[,c("nretC", "nretGS")])
 
@@ -374,8 +397,8 @@ We can use `mexAll` to estimate the three models at once and `mexMonteCarlo` to 
   b. Either Bank of America and Chase loses more than 3.5%
   c. Chase loses more than Bank of America on a day where Goldman Sachs has a negative return in excess of 3%.
 
-```{r estimateRiskPrep, exercise = TRUE, exercise.eval = FALSE}
-# Run this code yourself!
+```{r estimateRiskPrep, eval = FALSE, echo = TRUE}
+# WARNING: computationally intensive
 fitAllCE <- 
   mexAll(
     data = negRetBanks, 
@@ -383,14 +406,16 @@ fitAllCE <-
     dqu =  rep(0.95, ncol(negRetBanks))
     )
 estimateSim <- mexMonteCarlo(
-  nSample = 1e4, 
+  nSample = 1e5, 
   mexList = fitAllCE
   )
 # This is a list, see ?mexMonteCarlo for arguments
 ```
 
 ```{r estimateRisk, exercise = TRUE}
-
+# Use the simulations from `estimateSim$MCsample`
+# This is precalculated
+estimateSim <- texmexTutorial:::estimateSim
 
 ```
 
@@ -399,10 +424,11 @@ estimateSim <- mexMonteCarlo(
 # Use the simulations from `estimateSim$MCsample`
 # and compute the proportion of those samples
 # that satisfy the conditions.
-
+estimateSim <- texmexTutorial:::estimateSim
 ```
 
 ```{r estimateRisk-solution}
+estimateSim <- texmexTutorial:::estimateSim
 # (a) if all exceed, so does the minimum
 mean(apply(estimateSim$MCsample, 1, min) > 0.05)
 # (b) either = maximum exceeds
