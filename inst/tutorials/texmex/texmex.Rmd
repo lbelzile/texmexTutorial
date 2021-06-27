@@ -17,7 +17,7 @@ We study the extremal dependence of the negative daily returns of three American
 
 Since we are interested in the lower tail, we negate the three series.
 
-```{r loadData, echo = TRUE, eval = TRUE, message = FALSE}
+```{r loadData, echo = TRUE, exercise = TRUE, exercise.eval = TRUE, message = FALSE}
 library(texmex)
 library(gridExtra)
 library(xts, warn.conflicts = FALSE) #irregular time series
@@ -113,7 +113,7 @@ We first need to find suitable marginal thresholds for each of the three series.
 
 *Produce threshold stability plots for thresholds at the 0.8, 0.81, ... 0.98 quantiles of the Chase negative returns (ignoring clustering).*
 
-```{r threshstab, exercise = TRUE, eval = FALSE}
+```{r threshstab, exercise = TRUE, exercise.eval = FALSE}
 # Try thresholds from 0.8 quantile 
 # to 0.98 quantile in increments of 0.01
 fitRangeC <- gpdRangeFit(...) # Chase
